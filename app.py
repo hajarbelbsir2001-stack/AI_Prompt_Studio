@@ -1,5 +1,4 @@
 import streamlit as st
-import requests
 from reportlab.pdfgen import canvas
 from io import BytesIO
 from prompt_generator import generate_prompt
@@ -179,49 +178,40 @@ with st.form("prompt_form"):
 if submitted:
     enhanced_objective = f"{objective}. Type de prompt demandé : {prompt_type}."
 
-    response = requests.get(
-        "http://127.0.0.1:8000/generate",
-        params={
-            "domain": domain,
-            "subject": subject,
-            "objective": enhanced_objective,
-            "level": level,
-            "language": language,
-            "tone": tone
-        }
+    prompt = generate_prompt(
+        domain,
+        subject,
+        enhanced_objective,
+        level,
+        language,
+        tone
     )
 
-    if response.status_code == 200:
-        prompt = response.json()["prompt"]
+    st.session_state.history.append(prompt)
+    st.session_state.total_prompts += 1
 
-        st.session_state.history.append(prompt)
-        st.session_state.total_prompts += 1
+    st.success("Prompt généré avec succès ✅")
+    st.subheader("📌 Résultat")
 
-        st.success("Prompt généré avec succès ✅")
-        st.subheader("📌 Résultat")
+    st.text_area("Prompt généré", prompt, height=300)
 
-        st.text_area("Prompt généré", prompt, height=300)
+    st.info("📋 Pour copier le prompt : cliquez dans la zone du prompt, puis faites Ctrl + A et Ctrl + C.")
 
-        st.info("📋 Pour copier le prompt : utilisez le bouton de copie dans le bloc ci-dessous.")
-        st.code(prompt, language="text")
+    st.download_button(
+        label="📄 Télécharger le prompt en TXT",
+        data=prompt,
+        file_name="prompt_genere.txt",
+        mime="text/plain"
+    )
 
-        st.download_button(
-            label="📄 Télécharger le prompt en TXT",
-            data=prompt,
-            file_name="prompt_genere.txt",
-            mime="text/plain"
-        )
+    pdf = create_pdf(prompt)
 
-        pdf = create_pdf(prompt)
-
-        st.download_button(
-            label="📕 Télécharger le prompt en PDF",
-            data=pdf,
-            file_name="prompt_genere.pdf",
-            mime="application/pdf"
-        )
-    else:
-        st.error("Erreur lors de la génération du prompt.")
+    st.download_button(
+        label="📕 Télécharger le prompt en PDF",
+        data=pdf,
+        file_name="prompt_genere.pdf",
+        mime="application/pdf"
+    )
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📜 Historique des prompts")
